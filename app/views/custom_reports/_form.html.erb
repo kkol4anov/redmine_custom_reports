@@ -10,7 +10,7 @@
 
   <div class="box">
 
-    <div class="tablular">
+    <div class="tabular">
       <p>
         <%= f.text_field :name, size: 80, required: true %>
       </p>
@@ -30,8 +30,7 @@
       <% if User.current.admin? || User.current.allowed_to?(:manage_public_custom_reports, @project) %>
         <p>
           <label for="custom_report_is_public"><%= l(:field_is_public) %></label>
-          <%= check_box 'custom_report', 'is_public',
-            onchange: (User.current.admin? ? nil : 'if (this.checked) {$("custom_report_is_for_all").checked = false; $("custom_report_is_for_all").disabled = true;} else {$("custom_report_is_for_all").disabled = false;}') %>
+          <%= check_box 'custom_report', 'is_public' %>
         </p>
       <% end %>
 

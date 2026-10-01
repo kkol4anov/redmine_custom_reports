@@ -4,7 +4,7 @@ module CustomReportsHelper
   end
 
   def operators_for_select(filter_type)
-    Query.operators_by_filter_type[filter_type].collect { |o| [l(Query.operators[o]), o] }
+    Query.operators_by_filter_type[filter_type].collect { |o| [l(*Query.operators[o]), o] }
   end
 
   def query_options_for_select(query)
@@ -18,7 +18,7 @@ module CustomReportsHelper
   end
 
   def link_to_add_custom_report_series(name, f)
-    new_object = f.object.series.build
+    new_object = CustomReportSeries.new(custom_report: f.object)
     id         = new_object.object_id
     fields     = f.fields_for(:series, new_object, child_index: id) do |builder|
       render('series', f: builder)

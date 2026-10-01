@@ -16,7 +16,6 @@ class CustomReportsControllerTest < ActionController::TestCase
     @user        = User.find(1)
     User.current = @user
 
-    @request                   = ActionController::TestRequest.new
     @request.session[:user_id] = @user.id
 
     @custom_report = @project.custom_reports.create!(
@@ -34,17 +33,17 @@ class CustomReportsControllerTest < ActionController::TestCase
   end
 
   def test_show_all_custom_reports
-    get :index, project_id: @project.identifier
+    get :index, params: { project_id: @project.identifier }
     assert_response :success
   end
 
   def test_show_custom_report
-    get :new, project_id: @project.identifier, id: @custom_report.id
+    get :show, params: { project_id: @project.identifier, id: @custom_report.id }
     assert_response :success
   end
 
   def test_show_new_custom_report
-    get :new, project_id: @project.identifier
+    get :new, params: { project_id: @project.identifier }
     assert_response :success
   end
 
@@ -69,7 +68,7 @@ class CustomReportsControllerTest < ActionController::TestCase
         }
       }
     }
-    post :create, project_id: @project.identifier, custom_report: attrs
+    post :create, params: { project_id: @project.identifier, custom_report: attrs }
     assert_response :redirect
     custom_report = @project.custom_reports.find_by_name(attrs[:name])
     assert custom_report
@@ -86,7 +85,7 @@ class CustomReportsControllerTest < ActionController::TestCase
   end
 
   def test_show_edit_custom_report
-    get :edit, project_id: @project.identifier, id: @custom_report.id
+    get :edit, params: { project_id: @project.identifier, id: @custom_report.id }
     assert_response :success
   end
 
@@ -116,7 +115,7 @@ class CustomReportsControllerTest < ActionController::TestCase
         }
       }
     }
-    put :update, project_id: @project.identifier, id: @custom_report.id, custom_report: attrs
+    put :update, params: { project_id: @project.identifier, id: @custom_report.id, custom_report: attrs }
     assert_response :redirect
     @custom_report.reload
     assert_equal attrs[:description], @custom_report.description
@@ -132,9 +131,63 @@ class CustomReportsControllerTest < ActionController::TestCase
   end
 
   def test_destroy_custom_report
-    delete :destroy, project_id: @project.identifier, id: @custom_report.id
+    delete :destroy, params: { project_id: @project.identifier, id: @custom_report.id }
     assert_response :redirect
     custom_report = CustomReport.find_by_id @custom_report.id
     assert_nil custom_report
+    assert_equal 0, CustomReportSeries.where(custom_report_id: @custom_report.id).count
+  end
+
+  def test_multi_series_chart_is_rendered
+    @custom_report.update!(chart_type: 'stacked_bar')
+    get :show, params: { project_id: @project.identifier, id: @custom_report.id }
+    assert_response :success
+    assert_select '.custom-report-chart svg', 1
+  end
+
+  def test_invalid_create_renders_errors_and_sidebar
+    assert_no_difference 'CustomReport.count' do
+      post :create, params: { project_id: @project.identifier,
+                             custom_report: { name: '', chart_type: 'pie' } }
+    end
+    assert_response :success
+    assert_select '#errorExplanation'
+  end
+
+  def test_owner_and_project_cannot_be_reassigned
+    put :update, params: { project_id: @project.identifier, id: @custom_report.id,
+                          custom_report: { name: 'Renamed', user_id: 2, project_id: 2 } }
+    assert_response :redirect
+    assert_equal @user.id, @custom_report.reload.user_id
+    assert_equal @project.id, @custom_report.project_id
+  end
+
+  def test_cannot_destroy_last_series
+    put :update, params: {
+      project_id: @project.identifier, id: @custom_report.id,
+      custom_report: { series_attributes: {
+        '0' => { id: @custom_report.series.first.id, _destroy: '1' }
+      } }
+    }
+    assert_response :success
+    assert_select '#errorExplanation'
+    assert_equal 1, @custom_report.reload.series.count
+  end
+
+  def test_public_flag_requires_permission_on_update
+    user = User.find(2)
+    role = Role.generate!(permissions: [:view_custom_reports, :manage_custom_reports, :view_issues])
+    member = Member.find_or_initialize_by(project: @project, user: user)
+    member.roles = [role]
+    member.save!
+    @custom_report.update!(user: user, is_public: false)
+    @request.session[:user_id] = user.id
+    User.current = user
+
+    put :update, params: { project_id: @project.identifier, id: @custom_report.id,
+                          custom_report: { name: 'Still private', is_public: '1' } }
+    assert_response :redirect
+    assert_equal false, @custom_report.reload.is_public
+    assert_equal 'Still private', @custom_report.name
   end
 end

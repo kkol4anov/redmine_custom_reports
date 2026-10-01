@@ -15,7 +15,7 @@
 
     <%= link_to(l(:button_delete),
       project_custom_report_path(@project, @custom_report),
-      confirm: l(:text_are_you_sure),
+      data: { confirm: l(:text_are_you_sure) },
       method:  :delete,
       class:   'icon icon-del') %>
   </div>
@@ -25,15 +25,16 @@
 
 <p><%= @custom_report.description %></p>
 
+<% if @custom_report.valid? %>
 <%= content_tag :div,
   class:                    'custom-report',
   'data-custom_report_info' => @custom_report.info.to_json do %>
   <% if @custom_report.multi_series? %>
-    <% content_tag :div,
+    <%= content_tag :div,
       class:            'custom-report-chart',
       style:            width_style_for_series(@custom_report),
       'data-chart_data' => @custom_report.data.to_json do %>
-      <svg/>
+      <svg></svg>
     <% end %>
   <% else %>
     <% @custom_report.series.each do |series| %>
@@ -42,10 +43,14 @@
         style:            width_style_for_series(@custom_report),
         'data-chart_data' => [series.data].to_json do %>
         <h4><%= series.name %></h4>
-        <svg/>
+        <svg></svg>
       <% end %>
     <% end %>
   <% end %>
+<% end %>
+
+<% else %>
+  <%= error_messages_for @custom_report %>
 <% end %>
 
 <% content_for :sidebar do %>

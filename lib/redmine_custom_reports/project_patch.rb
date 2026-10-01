@@ -7,7 +7,3 @@ module RedmineCustomReports
     end
   end
 end
-
-unless Project.included_modules.include? RedmineCustomReports::ProjectPatch
-  Project.send :include, RedmineCustomReports::ProjectPatch
-end

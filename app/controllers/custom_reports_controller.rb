@@ -1,11 +1,9 @@
 class CustomReportsController < ApplicationController
-  unloadable
-
-  before_filter :find_project_by_project_id
-  before_filter :authorize
-  before_filter :find_custom_reports, only: [:index, :show, :new, :edit]
-  before_filter :find_custom_report, only: [:show, :edit, :update, :destroy]
-  before_filter :authorize_to_manage, only: [:edit, :update, :destroy]
+  before_action :find_project_by_project_id
+  before_action :authorize
+  before_action :find_custom_reports, only: [:index, :show, :new, :create, :edit, :update]
+  before_action :find_custom_report, only: [:show, :edit, :update, :destroy]
+  before_action :authorize_to_manage, only: [:edit, :update, :destroy]
 
   helper :queries
   include QueriesHelper
@@ -22,13 +20,8 @@ class CustomReportsController < ApplicationController
   end
 
   def create
-    params.required(:custom_report).permit! if params.class.method_defined? :required
-    @custom_report = @project.custom_reports.build(params[:custom_report])
+    @custom_report = @project.custom_reports.build(custom_report_params)
     @custom_report.user = User.current
-    unless User.current.allowed_to?(:manage_public_custom_reports, @project) ||
-           User.current.admin?
-      @custom_report.is_public = false
-    end
 
     if @custom_report.save
       redirect_to url_for(
@@ -45,13 +38,7 @@ class CustomReportsController < ApplicationController
   end
 
   def update
-    unless User.current.allowed_to?(:manage_public_custom_reports, @project) ||
-           User.current.admin?
-      @custom_report.is_public = false
-    end
-
-    params.required(:custom_report).permit! if params.class.method_defined? :required
-    if @custom_report.update_attributes(params[:custom_report])
+    if @custom_report.update(custom_report_params)
       redirect_to url_for(
         controller: 'custom_reports',
         action:     'show', project_id: @project, id: @custom_report.id),
@@ -71,6 +58,41 @@ class CustomReportsController < ApplicationController
   end
 
   private
+
+  def custom_report_params
+    input = params.require(:custom_report)
+    attrs = input.permit(:name, :description, :chart_type, :group_by, :null_text).to_h
+    if User.current.allowed_to?(:manage_public_custom_reports, @project)
+      attrs[:is_public] = input[:is_public] if input.key?(:is_public)
+    end
+
+    # Filter names are dynamic (custom fields), but their structure is fixed.
+    # Do not permit raw serialized filters, user_id or project_id.
+    nested = input[:series_attributes]
+    if nested.is_a?(ActionController::Parameters)
+      attrs[:series_attributes] = nested.each_pair.each_with_object({}) do |(key, row), result|
+        next unless row.is_a?(ActionController::Parameters)
+        item = row.permit(:id, :name, :_destroy).to_h
+        flt = row[:flt]
+        if flt.is_a?(ActionController::Parameters)
+          fields = flt.permit(f: [])[:f] || []
+          operators = flt[:op]
+          values = flt[:v]
+          item[:flt] = {f: fields, op: {}, v: {}}
+          fields.each do |field|
+            next unless operators.is_a?(ActionController::Parameters)
+            operator = operators[field]
+            next unless operator.is_a?(String)
+            item[:flt][:op][field] = operator
+            value = values.is_a?(ActionController::Parameters) ? values[field] : nil
+            item[:flt][:v][field] = Array(value).select { |v| v.is_a?(String) }
+          end
+        end
+        result[key] = item
+      end
+    end
+    attrs
+  end
 
   def find_custom_reports
     @custom_reports = @project.custom_reports.visible.by_name

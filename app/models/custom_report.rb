@@ -1,12 +1,11 @@
 class CustomReport < ActiveRecord::Base
-  unloadable
-
   CHART_TYPES  = %w(undev_pie pie donut bar horizontal_bar stacked_bar)
   MULTI_SERIES = %w(horizontal_bar stacked_bar)
 
   belongs_to :project
   belongs_to :user
-  has_many :series, class_name: 'CustomReportSeries'
+  has_many :series, class_name: 'CustomReportSeries',
+                    inverse_of: :custom_report, dependent: :destroy
 
   validates_presence_of :project
   validates_presence_of :user
@@ -14,6 +13,11 @@ class CustomReport < ActiveRecord::Base
   validates_presence_of :group_by
   validates_presence_of :null_text
   validates_inclusion_of :chart_type, in: CHART_TYPES
+
+  validates_associated :series
+
+  validate :valid_grouping
+  validate :at_least_one_series
 
   accepts_nested_attributes_for :series, allow_destroy: true
 
@@ -26,14 +30,7 @@ class CustomReport < ActiveRecord::Base
   scope :by_name, -> { order('name') }
 
   def groupable_columns
-    QueryExt.new().groupable_columns.select do |col|
-      if col.respond_to? :custom_field
-        col.custom_field.is_for_all ||
-          project.all_issue_custom_fields.include?(col.custom_field)
-      else
-        true
-      end
-    end
+    QueryExt.new(project: project).groupable_columns
   end
 
   def info
@@ -50,23 +47,30 @@ class CustomReport < ActiveRecord::Base
   end
 
   def data
-    if multi_series?
-      # all series must have the same keys
-      keys = series.map { |s| s.data_hash.keys }.flatten.uniq
-      series.map { |s| s.data(keys) }
-    else
-      series.map { |s| s.data }
-    end
+    rows = series.to_a
+    hashes = rows.map(&:data_hash)
+    keys = multi_series? ? hashes.flat_map(&:keys).uniq : []
+    rows.each_with_index.map { |row, index| row.data(keys, hashes[index]) }
   end
 
   def allowed_to_manage?(user = User.current)
-    user.allowed_to?(
-      is_public? ? :manage_public_custom_reports : :manage_custom_reports,
-      project
-    )
+    user.allowed_to?(:manage_custom_reports, project) &&
+      (is_public? ? user.allowed_to?(:manage_public_custom_reports, project) : user_id == user.id)
   end
 
   def group_by_column
     groupable_columns.detect { |col| col.name.to_s == group_by }
+  end
+
+  private
+
+  def valid_grouping
+    errors.add(:group_by, :invalid) if group_by.present? && !group_by_column
+  end
+
+  def at_least_one_series
+    if series.reject(&:marked_for_destruction?).empty?
+      errors.add(:base, :custom_report_series_required)
+    end
   end
 end

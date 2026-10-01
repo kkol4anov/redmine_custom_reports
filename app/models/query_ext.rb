@@ -1,27 +1,33 @@
-ISSUE_QUERY_CLASS = Redmine::VERSION.to_s >= '2.3.0' ? IssueQuery : Query
-
-class QueryExt < ISSUE_QUERY_CLASS
-  unloadable
-
-  def initialize(*args)
-    super
-    available_columns.each do |col|
-      make_groupable!(col) if groupable_ext?(col)
+# Keep the historical class name for existing plugin installations.
+class QueryExt < IssueQuery
+  validate :supported_report_filters
+  # Redmine 4 uses group_by_statement rather than the groupable attribute
+  # for custom fields. Extend only this query's column instances.
+  module StringGrouping
+    def group_by_statement
+      custom_field.order_statement
     end
   end
 
-  def model_name
-    superclass.model_name
+  def available_columns
+    super.each do |column|
+      next unless column.is_a?(QueryCustomFieldColumn)
+      field = column.custom_field
+      if field.field_format == 'string' && !field.multiple?
+        column.extend(StringGrouping) unless column.is_a?(StringGrouping)
+      end
+    end
   end
 
   private
 
-  def groupable_ext?(col)
-    col.respond_to?(:custom_field) && !col.custom_field.multiple? &&
-        %w(string).include?(col.custom_field.field_format)
-  end
-
-  def make_groupable!(col)
-    col.groupable = col.custom_field.order_statement
+  # A removed field or an unsupported operator must not silently widen a report.
+  def supported_report_filters
+    (filters || {}).each_key do |field|
+      type = type_for(field)
+      unless type && Array(Query.operators_by_filter_type[type]).include?(operator_for(field))
+        errors.add(:filters, :invalid)
+      end
+    end
   end
 end
