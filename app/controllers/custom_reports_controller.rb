@@ -70,7 +70,9 @@ class CustomReportsController < ApplicationController
     # Do not permit raw serialized filters, user_id or project_id.
     nested = input[:series_attributes]
     if nested.is_a?(ActionController::Parameters)
-      attrs[:series_attributes] = nested.each_pair.each_with_object({}) do |(key, row), result|
+      # Rails 5.2 Parameters#each_pair requires a block, unlike Hash#each_pair.
+      series_attributes = {}
+      nested.each_pair do |key, row|
         next unless row.is_a?(ActionController::Parameters)
         item = row.permit(:id, :name, :_destroy).to_h
         flt = row[:flt]
@@ -88,8 +90,9 @@ class CustomReportsController < ApplicationController
             item[:flt][:v][field] = Array(value).select { |v| v.is_a?(String) }
           end
         end
-        result[key] = item
+        series_attributes[key] = item
       end
+      attrs[:series_attributes] = series_attributes
     end
     attrs
   end

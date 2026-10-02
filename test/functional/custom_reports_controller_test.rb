@@ -138,6 +138,39 @@ class CustomReportsControllerTest < ActionController::TestCase
     assert_equal 0, CustomReportSeries.where(custom_report_id: @custom_report.id).count
   end
 
+  # Mirrors the request that raised LocalJumpError on Rails 5.2:
+  # nested series, status '*', empty trailing field and no values hash.
+  def test_create_with_valueless_filter
+    attributes = {
+      name: 'All statuses', chart_type: 'stacked_bar', group_by: 'status',
+      null_text: 'Null', is_public: '0',
+      series_attributes: {
+        '0' => { name: 'All', _destroy: 'false',
+                 flt: { f: ['status_id', ''], op: { status_id: '*' } } }
+      }
+    }
+    assert_difference 'CustomReport.count', 1 do
+      post :create, params: { project_id: @project.identifier, custom_report: attributes }
+    end
+    assert_response :redirect
+    report = @project.custom_reports.order(:id).last
+    assert_equal 1, report.series.count
+    assert_equal({'status_id' => {operator: '*', values: []}}, report.series.first.filters)
+  end
+
+  def test_update_with_valueless_filter
+    row = @custom_report.series.first
+    put :update, params: {
+      project_id: @project.identifier, id: @custom_report.id,
+      custom_report: { series_attributes: {
+        '0' => { id: row.id, name: 'All',
+                 flt: { f: ['status_id', ''], op: { status_id: '*' } } }
+      } }
+    }
+    assert_response :redirect
+    assert_equal({'status_id' => {operator: '*', values: []}}, row.reload.filters)
+  end
+
   def test_multi_series_chart_is_rendered
     @custom_report.update!(chart_type: 'stacked_bar')
     get :show, params: { project_id: @project.identifier, id: @custom_report.id }
