@@ -1,14 +1,14 @@
-ActionDispatch::Callbacks.to_prepare do
+# Rails reloads application models in development; reattach associations once.
+Rails.application.config.to_prepare do
+  require_dependency 'project'
+  require_dependency 'user'
+  require_dependency 'redmine_custom_reports/project_patch'
+  require_dependency 'redmine_custom_reports/user_patch'
 
-  # Requiring plugin's controller and model
-  require_dependency 'custom_report'
-  require_dependency 'custom_report_series'
-  require_dependency 'query_ext'
-  require_dependency 'custom_reports_helper'
-  require_dependency 'custom_reports_controller'
-
-  # Check that patches applied on every request
-  load 'redmine_custom_reports/project_patch.rb'
-  load 'redmine_custom_reports/user_patch.rb'
-
+  unless Project.included_modules.include?(RedmineCustomReports::ProjectPatch)
+    Project.send :include, RedmineCustomReports::ProjectPatch
+  end
+  unless User.included_modules.include?(RedmineCustomReports::UserPatch)
+    User.send :include, RedmineCustomReports::UserPatch
+  end
 end

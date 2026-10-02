@@ -37,6 +37,6 @@ Enable plugin at project level. Now you will see "Custom report" tab at the proj
 
 ## Compatibility
 
-This version supports redmine 2.x and 3.x
-
-For all tested versions see the "tests matrix":https://travis-ci.org/Restream/redmine_custom_reports
+This patched version targets Redmine 4.2.9, Ruby 2.7.4, Rails 5.2.8.1
+and MariaDB 10.5 with the mysql2 adapter. Redmine 2.x/3.x are no longer
+supported by this patch. No additional runtime gems are required.

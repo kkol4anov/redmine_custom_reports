@@ -18,9 +18,14 @@ ru:
   field_null_text: "Текст для пустых значений"
   field_series_name: "Название ряда"
 
-  message_custom_reports_created: "Отчет успешно изменен"
+  message_custom_reports_created: "Отчет успешно создан"
   message_custom_reports_updated: "Отчет успешно обновлен"
   message_custom_reports_destroyed: "Отчет успешно удален"
   message_cant_delete_last_series: "В отчете должен быть по крайней мере один ряд данных!"
   message_add_custom_report_series: "Добавить ряд"
   message_remove_custom_report_series: "Удалить ряд"
+
+  activerecord:
+    errors:
+      messages:
+        custom_report_series_required: "В отчёте должен быть хотя бы один ряд данных."

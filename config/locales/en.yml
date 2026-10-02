@@ -24,3 +24,8 @@ en:
   message_cant_delete_last_series: "Custom report must have at least one series!"
   message_add_custom_report_series: "Add new series"
   message_remove_custom_report_series: "Remove new series"
+
+  activerecord:
+    errors:
+      messages:
+        custom_report_series_required: "A report must contain at least one data series."

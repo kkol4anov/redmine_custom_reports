@@ -1,5 +1,7 @@
 jQuery(document).ready(function($) {
 
+  var nextSeriesId = Date.now();
+
   function findSeriesId(el){
     var dataEl = $(el).closest('[data-series_id]');
     return dataEl.data().series_id;
@@ -22,21 +24,21 @@ jQuery(document).ready(function($) {
       operators.attr('disabled', 'disabled');
       enableSeriesFilterValues(field_id, []);
     }
-    return 'todo';
   }
 
   function addSeriesFilter() {
     var selectEl = $(this);
     var field = selectEl.val();
     var series_id = findSeriesId(this);
-    var field_id = series_id + '_' + field;
+    if (!field) { return; }
+    var field_id = series_id + '_' + field.replace(/\./g, '_');
     var check_box = $('#cb_' + field_id);
 
     $('#tr_' + field_id).show();
-    check_box.attr('checked', 'checked');
+    check_box.prop('checked', true);
     toggleSeriesFilter(field_id);
     selectEl.val('');
-    selectEl.children('option[value=' + field + ']').attr('disabled', 'disabled');
+
   }
 
   function toggleSeriesFilterOperator(field_id) {
@@ -44,6 +46,17 @@ jQuery(document).ready(function($) {
     switch (operator.val()) {
       case '!*':
       case '*':
+      case 'nd':
+      case 'ld':
+      case 'nw':
+      case 'lw':
+      case 'l2w':
+      case 'nm':
+      case 'm':
+      case 'lm':
+      case 'y':
+      case '*o':
+      case '!o':
       case 't':
       case 'w':
       case 'o':
@@ -55,11 +68,18 @@ jQuery(document).ready(function($) {
         break;
       case '<t+':
       case '>t+':
+      case '><t+':
+      case '><t-':
       case 't+':
       case '>t-':
       case '<t-':
       case 't-':
         enableSeriesFilterValues(field_id, [2]);
+        break;
+      case '=p':
+      case '=!p':
+      case '!p':
+        enableSeriesFilterValues(field_id, [1]);
         break;
       default:
         enableSeriesFilterValues(field_id, [0]);
@@ -87,7 +107,9 @@ jQuery(document).ready(function($) {
   }
 
   $('body').on('click', '.remove-custom-report-series', function(event){
-    var series_count = fieldset = $('fieldset[data-series_id]').length;
+    var series_count = $('fieldset[data-series_id]').filter(function() {
+      return $(this).find('input[name$="[_destroy]"]').val() !== 'true';
+    }).length;
     if (series_count > 1) {
       var series_id = findSeriesId(this);
       var fieldset = $('fieldset[data-series_id=' + series_id + ']');
@@ -104,9 +126,12 @@ jQuery(document).ready(function($) {
   $('body').on('click', '.add-custom-report-series', function(event){
     var id = $(this).data().id;
     var fields = $(this).data().fields;
-    var time = new Date().getTime();
+    var time = ++nextSeriesId;
     var regexp = new RegExp(id, 'g');
-    $(this).before(fields.replace(regexp, time));
+    var added = $(fields.replace(regexp, time)).insertBefore(this);
+    added.find('[data-field_id]').each(function() {
+      toggleSeriesFilter($(this).data().field_id);
+    });
     event.preventDefault();
   });
 
@@ -124,16 +149,13 @@ jQuery(document).ready(function($) {
 
   $('[data-field_id]').each(function(){
     var field_id = $(this).data().field_id;
-    toggleSeriesFilterOperator(field_id);
+    toggleSeriesFilter(field_id);
+  });
+
+  $('body').on('click', '.custom-report-toggle-multi', function(event) {
+    event.preventDefault();
+    var select = $(document.getElementById($(this).data('target')));
+    select.prop('multiple', !select.prop('multiple'));
   });
 
 });
-
-function toggle_multi_select(id) {
-  var select = $('#'+id);
-  if (select.attr('multiple')) {
-    select.removeAttr('multiple');
-  } else {
-    select.attr('multiple', true);
-  }
-}
