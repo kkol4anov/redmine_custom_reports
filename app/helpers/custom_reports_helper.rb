@@ -4,7 +4,7 @@ module CustomReportsHelper
   end
 
   def operators_for_select(filter_type)
-    Query.operators_by_filter_type[filter_type].collect { |o| [l(*Query.operators[o]), o] }
+    ::Query.operators_by_filter_type[filter_type].collect { |o| [l(*::Query.operators[o]), o] }
   end
 
   def query_options_for_select(query)

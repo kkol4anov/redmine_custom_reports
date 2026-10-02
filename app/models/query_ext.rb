@@ -25,7 +25,7 @@ class QueryExt < IssueQuery
   def supported_report_filters
     (filters || {}).each_key do |field|
       type = type_for(field)
-      unless type && Array(Query.operators_by_filter_type[type]).include?(operator_for(field))
+      unless type && Array(::Query.operators_by_filter_type[type]).include?(operator_for(field))
         errors.add(:filters, :invalid)
       end
     end
