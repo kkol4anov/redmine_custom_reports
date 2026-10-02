@@ -40,7 +40,15 @@
               <%= link_to(l(:button_edit),
                 edit_project_custom_report_path(@project, custom_report),
                 class: 'icon icon-edit') %>
+            <% end %>
 
+            <% if User.current.allowed_to?(:manage_custom_reports, @project) %>
+              <%= link_to(l(:button_copy),
+                new_project_custom_report_path(@project, copy_from: custom_report.id),
+                class: 'icon icon-copy') %>
+            <% end %>
+
+            <% if custom_report.allowed_to_manage? %>
               <%= link_to(l(:button_delete),
                 project_custom_report_path(@project, custom_report),
                 data: { confirm: l(:text_are_you_sure) },

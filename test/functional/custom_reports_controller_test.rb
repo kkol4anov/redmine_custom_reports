@@ -47,6 +47,56 @@ class CustomReportsControllerTest < ActionController::TestCase
     assert_response :success
   end
 
+  def test_copy_opens_unsaved_report_with_independent_series
+    filters = {'status_id' => {operator: '=', values: ['1', '2']}}
+    @custom_report.series.first.update!(filters: filters)
+    @custom_report.series.create!(name: 'Second series', filters: {})
+
+    assert_no_difference ['CustomReport.count', 'CustomReportSeries.count'] do
+      get :new, params: {project_id: @project.identifier, copy_from: @custom_report.id}
+    end
+    assert_response :success
+    copy = assigns(:custom_report)
+    assert copy.new_record?
+    assert_equal @project, copy.project
+    %w(name description chart_type group_by null_text is_public).each do |attribute|
+      assert_equal @custom_report[attribute], copy[attribute]
+    end
+    assert_equal 2, copy.series.size
+    assert copy.series.all?(&:new_record?)
+    assert_equal @custom_report.series.map(&:name), copy.series.map(&:name)
+    assert_equal filters, copy.series.first.filters
+    copy.series.first.filters['status_id'][:values] << '999'
+    assert_equal filters, @custom_report.series.first.reload.filters
+    assert_select 'input[name$="[id]"]', 0
+  end
+
+  def test_copy_button_in_report_list
+    get :index, params: {project_id: @project.identifier}
+    assert_select 'a.icon-copy[href=?]',
+      new_project_custom_report_path(@project, copy_from: @custom_report.id), 1
+  end
+
+  def test_copy_public_report_without_public_management_becomes_private
+    sign_in_report_copier
+    get :new, params: {project_id: @project.identifier, copy_from: @custom_report.id}
+    assert_response :success
+    assert_equal false, assigns(:custom_report).is_public
+  end
+
+  def test_cannot_copy_another_users_private_report
+    @custom_report.update!(is_public: false)
+    sign_in_report_copier
+    get :new, params: {project_id: @project.identifier, copy_from: @custom_report.id}
+    assert_response :not_found
+  end
+
+  def test_cannot_copy_report_from_another_project
+    @custom_report.update!(project: Project.find(2))
+    get :new, params: {project_id: @project.identifier, copy_from: @custom_report.id}
+    assert_response :not_found
+  end
+
   def test_create_custom_report
     series_name    = 'series2-1'
     series_filters = { 'status_id' => { operator: '=', values: ['1'] } }
@@ -222,5 +272,17 @@ class CustomReportsControllerTest < ActionController::TestCase
     assert_response :redirect
     assert_equal false, @custom_report.reload.is_public
     assert_equal 'Still private', @custom_report.name
+  end
+
+  private
+
+  def sign_in_report_copier
+    user = User.find(2)
+    role = Role.generate!(permissions: [:view_custom_reports, :manage_custom_reports, :view_issues])
+    member = Member.find_or_initialize_by(project: @project, user: user)
+    member.roles = [role]
+    member.save!
+    @request.session[:user_id] = user.id
+    User.current = user
   end
 end
