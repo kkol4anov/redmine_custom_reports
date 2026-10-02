@@ -39,6 +39,7 @@
               <div id="div_values_<%= field_id %>" style="display:none;">
                 <% case options[:type]
                      when :list, :list_optional, :list_status, :list_subprojects %>
+                  <% multiple = Array(query.values_for(field)).length > 1 %>
                   <span class="span_values_<%= field_id %>">
                     <%= select_tag "#{filter_attr}[v][#{field}][]",
                       options_for_select(
@@ -46,7 +47,8 @@
                         query.values_for(field)),
                       class:    "values_#{field_id}",
                       id:       "values_#{field_id}_1",
-                      multiple: (query.values_for(field) && query.values_for(field).length > 1) %>
+                      multiple: multiple,
+                      size:     (multiple ? (options[:values].to_a.length > 10 ? 10 : 4) : 1) %>
                     <%= link_to image_tag('bullet_toggle_plus.png'), '#',
                       class: 'custom-report-toggle-multi',
                       data: { target: "values_#{field_id}_1" } %>
