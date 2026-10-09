@@ -29,7 +29,6 @@ ru:
   label_report_default_bar_mode: "Режим столбцов по умолчанию"
   label_report_stacked: "С накоплением"
   label_report_grouped: "Рядом"
-  label_report_inherit: "Использовать настройки плагина"
   label_report_values: "Показывать количество"
   label_report_total: "Сумма"
   label_report_empty: "Нет данных"

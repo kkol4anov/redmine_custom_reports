@@ -21,14 +21,13 @@ class CustomReportPresentationTest < ActiveSupport::TestCase
                      series_attributes: [{name: 'All', filters: {}}]}.merge(attributes))
   end
 
-  def test_default_layout_inherits_settings_and_supports_override
-    with_settings plugin_redmine_custom_reports: {'bar_mode' => 'grouped'} do
-      assert_equal 'grouped', report.effective_bar_mode
-      assert_equal 'stacked', report(bar_mode: 'stacked').effective_bar_mode
-    end
-    with_settings plugin_redmine_custom_reports: {} do
-      assert_equal 'stacked', report.effective_bar_mode
-    end
+  def test_default_layout_is_local_and_ignores_old_plugin_settings
+    # The plugin setting is no longer registered; the model must not read it.
+    Setting.expects(:plugin_redmine_custom_reports).never
+    assert_equal 'stacked', report(bar_mode: '').effective_bar_mode
+    assert_equal 'stacked', report(bar_mode: 'stacked').effective_bar_mode
+    assert_equal 'grouped', report(bar_mode: 'grouped').effective_bar_mode
+    assert_equal 'stacked', report.effective_bar_mode
     assert_not report(bar_mode: 'invalid').valid?
   end
 

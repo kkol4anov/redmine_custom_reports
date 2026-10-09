@@ -29,7 +29,6 @@ en:
   label_report_default_bar_mode: "Default bar layout"
   label_report_stacked: "Stacked"
   label_report_grouped: "Grouped"
-  label_report_inherit: "Use plugin settings"
   label_report_values: "Show counts"
   label_report_total: "Sum"
   label_report_empty: "No data"

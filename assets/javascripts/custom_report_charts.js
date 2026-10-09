@@ -1,21 +1,12 @@
 /* Report presentation. User-provided text is only inserted with textContent. */
 jQuery(function($) {
   'use strict';
-  var NS = 'http://www.w3.org/2000/svg';
-  var colors = ['#2878ad', '#df8c28', '#39967c', '#b95463', '#8866ad', '#69833c', '#ad6743', '#568e9b'];
   var redraw = [];
   function el(tag, text, parent, attrs) {
     var node = document.createElement(tag);
     if (text !== null && text !== undefined) node.textContent = text;
     Object.keys(attrs || {}).forEach(function(k) { node.setAttribute(k, attrs[k]); });
     if (parent) parent.appendChild(node);
-    return node;
-  }
-  function svgEl(tag, attrs, parent, text) {
-    var node = document.createElementNS(NS, tag);
-    Object.keys(attrs || {}).forEach(function(k) { node.setAttribute(k, attrs[k]); });
-    if (text !== undefined) node.textContent = text;
-    parent.appendChild(node);
     return node;
   }
   function sum(a) { return a.reduce(function(total, n) { return total + n; }, 0); }
@@ -81,7 +72,7 @@ jQuery(function($) {
       var max = 0;
       values.forEach(function(row, r) { row.forEach(function(v, c) { max = Math.max(max, number(v, r, c)); }); });
       var t = el('table', null, view, {class: 'list report-matrix'});
-      el('caption', source.name + ' — ' + (swapped ? source.column_caption : source.row_caption) + ' × ' +
+      el('caption', (source.name ? source.name + ' — ' : '') + (swapped ? source.column_caption : source.row_caption) + ' × ' +
         (swapped ? source.row_caption : source.column_caption), t);
       var head = el('tr', null, el('thead', null, t));
       el('th', swapped ? source.column_caption : source.row_caption, head, {scope: 'col'});
@@ -105,26 +96,20 @@ jQuery(function($) {
   }
 
   function chart(container, info, data) {
-    var labels = info.labels, show = info.show_values, stacked = info.bar_mode === 'stacked';
+    var labels = info.labels, show = !!info.show_values;
     var pie = info.chart_type === 'pie' || info.chart_type === 'donut';
-    var horizontal = info.chart_type === 'horizontal_bar';
-    var multi = info.multi_series;
-    var hidden = {};
+    var horizontal = info.chart_type === 'horizontal_bar', multi = info.multi_series;
     var toolbar = el('div', null, container, {class: 'report-toolbar'});
-    checkbox(toolbar, labels.values, show, function() { show = this.checked; details.open = show; render(); });
-    if (multi) {
-      var select = el('select', null, toolbar, {'aria-label': labels.layout});
-      el('option', labels.stacked, select, {value: 'stacked'});
-      el('option', labels.grouped, select, {value: 'grouped'});
-      select.value = stacked ? 'stacked' : 'grouped';
-      select.addEventListener('change', function() { stacked = this.value === 'stacked'; render(); });
-    }
-    var legend = el('div', null, container, {class: 'report-legend'});
+    checkbox(toolbar, labels.values, show, function() {
+      show = this.checked;
+      details.open = show;
+      configureValues();
+      model.update();
+    });
     var scroll = el('div', null, container, {class: 'report-chart-scroll'});
-    var svg = container.querySelector('svg');
-    scroll.appendChild(svg);
-    svg.setAttribute('role', 'img');
-    svg.setAttribute('aria-label', labels.values + ' — ' + info.group_by_caption);
+    var svgNode = container.querySelector('svg'), svg = d3.select(svgNode);
+    scroll.appendChild(svgNode);
+    svg.attr('role', 'img').attr('aria-label', labels.values + ' — ' + info.group_by_caption);
     var details = el('details', null, container, {class: 'report-data-details'});
     el('summary', labels.table, details);
     details.open = show && !pie;
@@ -133,98 +118,74 @@ jQuery(function($) {
       rows: categories, columns: data.map(function(s) { return s.key; }),
       values: categories.map(function(_, i) { return data.map(function(s) { return s.values[i].value; }); }),
       overlapping: data.length > 1}, info);
-    function render() {
-      while (svg.firstChild) svg.removeChild(svg.firstChild);
-      while (legend.firstChild) legend.removeChild(legend.firstChild);
-      var items = pie ? (data[0] ? data[0].values : []) : data;
-      items.forEach(function(item, i) {
-        var text = pie ? item.label + (show ? ' — ' + count(item.value) : '') : item.key;
-        var b = button(legend, text, function() { hidden[i] = !hidden[i]; render(); });
-        b.style.borderLeftColor = colors[i % colors.length];
-        b.setAttribute('aria-pressed', String(!hidden[i]));
-        if (hidden[i]) b.className = 'report-muted';
-      });
-      var active = items.map(function(item, i) { return {item: item, index: i}; }).filter(function(d) { return !hidden[d.index]; });
-      var width = Math.max(360, container.clientWidth || 800), height = 400;
-      function size() { svg.setAttribute('width', width); svg.setAttribute('height', height); svg.setAttribute('viewBox', '0 0 ' + width + ' ' + height); }
-      if (!active.length || !categories.length || (pie && !sum(active.map(function(d) { return d.item.value; })))) {
-        size(); svgEl('text', {x: 20, y: 40}, svg, labels.empty); return;
-      }
-      if (pie) {
-        var radius = Math.min(width / 2 - 24, 175), center = svgEl('g', {transform: 'translate(' + width / 2 + ',200)'}, svg);
-        var total = sum(active.map(function(d) { return d.item.value; }));
-        var slices = d3.layout.pie().sort(null).value(function(d) { return d.item.value; })(active);
-        var arc = d3.svg.arc().innerRadius(info.chart_type === 'donut' ? radius * 0.58 : 0).outerRadius(radius);
-        slices.forEach(function(s) {
-          var path = svgEl('path', {d: arc(s), fill: colors[s.data.index % colors.length], stroke: '#fff', 'stroke-width': 2}, center);
-          svgEl('title', {}, path, s.data.item.label + ': ' + count(s.value) + ' (' + (100 * s.value / total).toFixed(1) + '%)');
-          // Tiny slices retain exact, permanent counts in the legend without colliding labels.
-          if (show && s.value / total >= 0.035) {
-            var mid = (s.startAngle + s.endAngle) / 2, r = radius * (info.chart_type === 'donut' ? 0.8 : 0.65);
-            svgEl('text', {x: Math.sin(mid) * r, y: -Math.cos(mid) * r + 4, class: 'report-value'}, center, count(s.value));
-          }
-        });
-        if (info.chart_type === 'donut' && show) {
-          svgEl('text', {x: 0, y: 0, class: 'report-total'}, center, count(total));
-          svgEl('text', {x: 0, y: 22, 'text-anchor': 'middle'}, center, labels.total);
-        }
-      } else {
-        var n = categories.length, k = active.length;
-        var margin = {left: horizontal ? 190 : 65, right: horizontal ? 90 : 45, top: 30, bottom: horizontal ? 50 : 130};
-        if (horizontal) height = Math.max(300, n * (stacked ? 42 : 30 * k) + margin.top + margin.bottom);
-        else width = Math.max(width, n * (stacked || !multi ? 85 : 55 * k) + margin.left + margin.right);
-        var plotW = width - margin.left - margin.right, plotH = height - margin.top - margin.bottom;
-        var maximum = 1;
-        categories.forEach(function(_, i) {
-          var vals = active.map(function(s) { return s.item.values[i].value; });
-          maximum = Math.max(maximum, multi && stacked ? sum(vals) : Math.max.apply(null, vals));
-        });
-        // A non-zero integer tick step avoids duplicate labels for small counts.
-        var step = Math.max(1, Math.ceil(maximum / 5)), limit = step * Math.ceil(maximum / step);
-        var length = horizontal ? plotW : plotH;
-        var band = (horizontal ? plotH : plotW) / n;
-        var group = svgEl('g', {transform: 'translate(' + margin.left + ',' + margin.top + ')'}, svg);
-        for (var tick = 0; tick <= limit; tick += step) {
-          var pos = tick / limit * length;
-          svgEl('line', horizontal ? {x1: pos, x2: pos, y1: 0, y2: plotH, class: 'report-grid'} :
-            {x1: 0, x2: plotW, y1: plotH - pos, y2: plotH - pos, class: 'report-grid'}, group);
-          svgEl('text', horizontal ? {x: pos, y: plotH + 22, 'text-anchor': 'middle'} :
-            {x: -10, y: plotH - pos + 4, 'text-anchor': 'end'}, group, count(tick));
-        }
-        categories.forEach(function(category, i) {
-          var offset = 0, useStack = multi && stacked;
-          var label = svgEl('text', horizontal ? {x: -12, y: i * band + band / 2 + 4, 'text-anchor': 'end'} :
-            {transform: 'translate(' + (i * band + band / 2) + ',' + (plotH + 18) + ') rotate(-35)', 'text-anchor': 'end'}, group,
-            category.length > 26 ? category.slice(0, 25) + '…' : category);
-          svgEl('title', {}, label, category);
-          active.forEach(function(s, j) {
-            var v = s.item.values[i].value, len = v / limit * length;
-            var thickness = band * 0.75 / (useStack ? 1 : k);
-            var cross = i * band + band * 0.125 + (useStack ? 0 : j * thickness);
-            var start = (useStack ? offset : 0) / limit * length;
-            var attrs = horizontal ? {x: start, y: cross, width: len, height: thickness - 1} :
-              {x: cross, y: plotH - start - len, width: thickness - 1, height: len};
-            attrs.fill = colors[s.index % colors.length];
-            var bar = svgEl('rect', attrs, group);
-            svgEl('title', {}, bar, category + ' / ' + s.item.key + ': ' + count(v));
-            if (show && v > 0 && (!useStack || len >= (horizontal ? 32 : 16))) {
-              svgEl('text', horizontal ? {x: start + (useStack ? len / 2 : len + 5), y: cross + thickness / 2 + 4,
-                'text-anchor': useStack ? 'middle' : 'start', class: useStack ? 'report-value' : ''} :
-                {x: cross + thickness / 2, y: plotH - start - len + (useStack ? len / 2 + 4 : -6),
-                  'text-anchor': 'middle', class: useStack ? 'report-value' : ''}, group, count(v));
-            }
-            offset += v;
-          });
-        });
-        // Exact values stay visible when segments are too small to label safely.
 
-      }
-      size();
+    // Keep the data table immutable: NVD3 adds stack offsets and disabled flags.
+    var chartData = data.map(function(series, index) {
+      var duplicate = data.filter(function(s) { return s.key === series.key; }).length > 1;
+      return {key: series.key + (duplicate ? ' [' + (index + 1) + ']' : ''),
+        values: series.values.map(function(value, i) {
+          return {label: value.label, value: value.value, category: String(i)};
+        })};
+    });
+    function escape(text) { return el('span', String(text)).innerHTML; }
+    function numberTick(value) { return value % 1 === 0 ? count(value) : ''; }
+    function categoryTick(value) {
+      var label = categories[Number(value)] || '';
+      return label.length > 30 ? label.slice(0, 29) + '…' : label;
     }
-    redraw.push(render);
-    render();
-  }
+    var model;
+    if (pie) {
+      model = nv.models.pieChart().donut(info.chart_type === 'donut')
+        .showLabels(false).valueFormat(count)
+        .x(function(d) { return d.label + (show ? ' — ' + count(d.value) : ''); })
+        .y(function(d) { return d.value; })
+        .tooltipContent(function(key, value, event) {
+          return '<h3>' + escape(event.point.label) + '</h3><p>' + escape(value) + '</p>';
+        });
+    } else {
+      if (multi) {
+        model = horizontal ? nv.models.multiBarHorizontalChart() : nv.models.multiBarChart();
+        model.stacked(info.bar_mode !== 'grouped').showControls(true);
+        if (horizontal) model.showValues(false); // Extension labels support both modes.
+        else model.clipEdge(false).delay(180).reduceXTicks(false);
+      } else {
+        model = nv.models.discreteBarChart().staggerLabels(true).valueFormat(count);
+      }
+      model.x(function(d) { return d.category; }).y(function(d) { return d.value; });
+      model.margin({top: 35, right: horizontal ? 85 : 30, bottom: horizontal ? 55 : 95, left: horizontal ? 210 : 70});
+      model.xAxis.tickFormat(categoryTick).axisLabel(info.group_by_caption);
+      model.yAxis.tickFormat(numberTick);
+      model.tooltipContent(function(key, x, y, event) {
+        return '<h3>' + escape(event.point.label) + '</h3><p>' +
+          (multi ? escape(key) + ': ' : '') + escape(y) + '</p>';
+      });
+    }
+    model.noData(labels.empty).tooltips(true);
+    $(container).data('nvd3_chart', model);
+    function configureValues() {
+      if (pie) model.pie.reportShowValues(show).reportValueFormat(count);
+      else if (multi) model.multibar.reportShowValues(show).reportValueFormat(count);
+      else model.showValues(show);
+    }
+    configureValues();
 
+    function resize(initial) {
+      var width = Math.max(360, container.clientWidth || 800), height = 500;
+      if (multi) width = Math.max(width, 600); // Native legend and mode controls must not overlap.
+      if (!pie && !horizontal) width = Math.max(width, categories.length * Math.max(75, data.length * 36) + 100);
+      if (horizontal) height = Math.max(height, categories.length * Math.max(40, data.length * 28) + 100);
+      svg.style('width', width + 'px').style('height', height + 'px')
+        .attr('width', width).attr('height', height);
+      model.width(width).height(height);
+      if (initial) {
+        // NVD3 v1 pieChart does not detect a series with an empty values array.
+        var empty = !categories.length || (pie && !sum(chartData[0].values.map(function(d) { return d.value; })));
+        svg.datum(empty ? [] : chartData).transition().duration(500).call(model);
+      } else model.update();
+    }
+    redraw.push(function() { resize(false); });
+    resize(true);
+  }
   $('.custom-report').each(function() {
     var info = $(this).data('custom_report_info');
     $(this).find('.custom-report-chart').each(function() { chart(this, info, $(this).data('chart_data')); });

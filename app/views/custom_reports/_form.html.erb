@@ -55,7 +55,8 @@
       <p class="report-bar-setting">
         <label for="custom_report_bar_mode"><%= l(:label_report_default_bar_mode) %></label>
         <%= select 'custom_report', 'bar_mode',
-          [[l(:label_report_inherit), ''], [l(:label_report_stacked), 'stacked'], [l(:label_report_grouped), 'grouped']] %>
+          [[l(:label_report_stacked), 'stacked'], [l(:label_report_grouped), 'grouped']],
+          selected: custom_report.effective_bar_mode %>
       </p>
 
       <p>

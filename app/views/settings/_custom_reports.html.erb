@@ -1,6 +1,0 @@
-<p>
-  <label for="settings_bar_mode"><%= l(:label_report_default_bar_mode) %></label>
-  <%= select_tag 'settings[bar_mode]', options_for_select(
-    [[l(:label_report_stacked), 'stacked'], [l(:label_report_grouped), 'grouped']],
-    @settings['bar_mode']), id: 'settings_bar_mode' %>
-</p>

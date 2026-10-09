@@ -49,8 +49,7 @@ class CustomReport < ActiveRecord::Base
   end
 
   def effective_bar_mode
-    value = bar_mode.presence || Setting.plugin_redmine_custom_reports['bar_mode']
-    %w(stacked grouped).include?(value) ? value : 'stacked'
+    bar_mode == 'grouped' ? 'grouped' : 'stacked'
   end
 
   def table?
