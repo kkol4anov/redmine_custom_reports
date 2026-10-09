@@ -37,8 +37,25 @@
       <p>
         <label for="custom_report_group_by"><%= l(:field_group_by) %></label>
         <%= select 'custom_report', 'group_by',
-          @custom_report.groupable_columns.collect { |c| [c.caption, c.name.to_s] },
+          @custom_report.groupable_columns.collect { |c| [c.caption, c.name.to_s,
+            {'data-table-supported' => custom_report.table_columns.any? { |tc| tc.name == c.name }.to_s}] },
           include_blank: false %>
+      </p>
+
+      <p class="report-table-setting">
+        <label for="custom_report_column_by"><%= l(:label_report_columns) %></label>
+        <%= select 'custom_report', 'column_by',
+          [[l(:label_report_series_columns), '']] + custom_report.table_columns.collect { |c| [c.caption, c.name.to_s] } %>
+        <em class="info"><%= l(:label_report_axes_help) %></em>
+      </p>
+      <p class="report-chart-setting">
+        <label for="custom_report_show_values"><%= l(:label_report_values) %></label>
+        <%= check_box 'custom_report', 'show_values' %>
+      </p>
+      <p class="report-bar-setting">
+        <label for="custom_report_bar_mode"><%= l(:label_report_default_bar_mode) %></label>
+        <%= select 'custom_report', 'bar_mode',
+          [[l(:label_report_inherit), ''], [l(:label_report_stacked), 'stacked'], [l(:label_report_grouped), 'grouped']] %>
       </p>
 
       <p>

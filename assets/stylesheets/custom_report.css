@@ -1,12 +1,25 @@
-.custom-report {
-  width: 100%;
-}
-
-.custom-report-chart {
-  float: left;
-}
-
-.custom-report-chart svg {
-  height: 500px;
-  overflow: visible;
-}
+.custom-report { width: 100%; clear: both; }
+.custom-report-chart, .custom-report-table { margin: 18px 0 28px; }
+.report-toolbar, .report-legend { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 10px 0; }
+.report-toolbar label { display: flex; gap: 6px; align-items: center; }
+.report-toolbar select[multiple] { min-width: 160px; max-width: 320px; }
+.report-legend button { border: 1px solid #ddd; border-left: 6px solid; background: #fff; border-radius: 3px; padding: 5px 9px; cursor: pointer; color: #333; }
+.report-legend .report-muted { opacity: .5; text-decoration: line-through; }
+.report-chart-scroll, .report-table-scroll { overflow: auto; max-width: 100%; }
+.report-table-scroll { max-height: 70vh; }
+.custom-report-chart svg { display: block; font: 12px sans-serif; color: #333; }
+.custom-report-chart svg text { fill: #333; }
+.custom-report-chart .report-grid { stroke: #e3e7eb; stroke-width: 1; }
+.custom-report-chart .report-value { fill: white; text-anchor: middle; font-weight: bold; paint-order: stroke; stroke: #333; stroke-width: 2px; stroke-linejoin: round; }
+.custom-report-chart .report-total { font-size: 25px; font-weight: bold; text-anchor: middle; }
+.report-matrix { width: auto !important; min-width: 380px; border-collapse: separate; border-spacing: 0; font-variant-numeric: tabular-nums; }
+.report-matrix caption { text-align: left; font-weight: bold; padding: 8px 0; }
+.report-matrix th, .report-matrix td { padding: 7px 12px !important; border-right: 1px solid #ddd; border-bottom: 1px solid #ddd; }
+.report-matrix td { text-align: right !important; white-space: nowrap; }
+.report-matrix th { text-align: left; min-width: 85px; max-width: 240px; overflow-wrap: break-word; background: #edf1f4; }
+.report-matrix thead th { position: sticky; top: 0; z-index: 2; }
+.report-matrix tbody th, .report-matrix tfoot th { position: sticky; left: 0; z-index: 1; }
+.report-matrix tfoot { font-weight: bold; background: #edf1f4; }
+.report-note { color: #666; font-size: .95em; }
+.report-axis-filters summary, .report-data-details > summary { cursor: pointer; margin: 9px 0; }
+@media print { .report-toolbar, .report-axis-filters { display: none; } .report-table-scroll, .report-chart-scroll { overflow: visible; max-height: none; } }

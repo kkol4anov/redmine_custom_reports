@@ -48,6 +48,7 @@ class CustomReportsControllerTest < ActionController::TestCase
   end
 
   def test_copy_opens_unsaved_report_with_independent_series
+    @custom_report.update!(show_values: true, bar_mode: 'grouped', column_by: 'tracker')
     filters = {'status_id' => {operator: '=', values: ['1', '2']}}
     @custom_report.series.first.update!(filters: filters)
     @custom_report.series.create!(name: 'Second series', filters: {})
@@ -59,7 +60,7 @@ class CustomReportsControllerTest < ActionController::TestCase
     copy = assigns(:custom_report)
     assert copy.new_record?
     assert_equal @project, copy.project
-    %w(name description chart_type group_by null_text is_public).each do |attribute|
+    %w(name description chart_type group_by null_text is_public show_values bar_mode column_by).each do |attribute|
       assert_equal @custom_report[attribute], copy[attribute]
     end
     assert_equal 2, copy.series.size

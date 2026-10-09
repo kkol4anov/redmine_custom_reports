@@ -7,7 +7,6 @@ en:
   label_custom_report_edit: "Edit custom report"
   label_series_filters: "Series filters"
 
-  label_chart_type_undev_pie: "Undev Pie"
   label_chart_type_pie: "Pie"
   label_chart_type_donut: "Donut"
   label_chart_type_bar: "Discrete Bar"
@@ -24,6 +23,29 @@ en:
   message_cant_delete_last_series: "Custom report must have at least one series!"
   message_add_custom_report_series: "Add new series"
   message_remove_custom_report_series: "Remove new series"
+
+  label_chart_type_table: "Summary table"
+  label_chart_type_heatmap: "Heatmap table"
+  label_report_default_bar_mode: "Default bar layout"
+  label_report_stacked: "Stacked"
+  label_report_grouped: "Grouped"
+  label_report_inherit: "Use plugin settings"
+  label_report_values: "Show counts"
+  label_report_total: "Sum"
+  label_report_empty: "No data"
+  label_report_rows: "Rows"
+  label_report_columns: "Columns"
+  label_report_swap: "Swap axes"
+  label_report_table: "All data — table"
+  label_report_overlap: "Series can overlap. Sums count occurrences, not unique issues."
+  label_report_series_columns: "Configured data series"
+  label_report_axes_help: "Group by selects rows; this field selects columns. Each series has its own matrix. Multiple-value custom fields are not supported as matrix axes."
+
+  label_report_heatmap: "Heatmap colors"
+  label_report_layout: "Bar layout"
+  label_report_series: "Data series"
+
+  label_report_too_large: "The table exceeds 20,000 cells. Narrow the filters or choose other dimensions. No truncated results are shown."
 
   activerecord:
     errors:

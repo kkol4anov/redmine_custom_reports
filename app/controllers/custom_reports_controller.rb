@@ -12,6 +12,11 @@ class CustomReportsController < ApplicationController
   end
 
   def show
+    if @custom_report.table? && @custom_report.valid?
+      @report_tables = @custom_report.tables
+    end
+  rescue QueryExt::ReportTooLarge
+    @report_error = l(:label_report_too_large)
   end
 
   def new
@@ -19,7 +24,8 @@ class CustomReportsController < ApplicationController
     if params[:copy_from].present?
       source = @project.custom_reports.visible.find(params[:copy_from])
       @custom_report.assign_attributes(source.attributes.slice(
-        'name', 'description', 'chart_type', 'group_by', 'null_text'))
+        'name', 'description', 'chart_type', 'group_by', 'null_text',
+        'show_values', 'bar_mode', 'column_by'))
       @custom_report.is_public = source.is_public? &&
         User.current.allowed_to?(:manage_public_custom_reports, @project)
       source.series.each do |series|
@@ -71,7 +77,8 @@ class CustomReportsController < ApplicationController
 
   def custom_report_params
     input = params.require(:custom_report)
-    attrs = input.permit(:name, :description, :chart_type, :group_by, :null_text).to_h
+    attrs = input.permit(:name, :description, :chart_type, :group_by, :null_text,
+                         :show_values, :bar_mode, :column_by).to_h
     if User.current.allowed_to?(:manage_public_custom_reports, @project)
       attrs[:is_public] = input[:is_public] if input.key?(:is_public)
     end

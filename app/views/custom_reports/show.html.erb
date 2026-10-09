@@ -1,8 +1,6 @@
 <% content_for :header_tags do %>
   <%= stylesheet_link_tag 'custom_report', plugin: 'redmine_custom_reports' %>
-  <%= stylesheet_link_tag 'nv.d3.css', plugin: 'redmine_custom_reports' %>
   <%= javascript_include_tag 'd3.v2.min.js', plugin: 'redmine_custom_reports' %>
-  <%= javascript_include_tag 'nv.d3.min.js', plugin: 'redmine_custom_reports' %>
   <%= javascript_include_tag 'custom_report_charts', plugin: 'redmine_custom_reports' %>
 <% end %>
 
@@ -25,11 +23,17 @@
 
 <p><%= @custom_report.description %></p>
 
-<% if @custom_report.valid? %>
+<% if @report_error %>
+  <div class="warning"><%= @report_error %></div>
+<% elsif @custom_report.valid? %>
 <%= content_tag :div,
   class:                    'custom-report',
   'data-custom_report_info' => @custom_report.info.to_json do %>
-  <% if @custom_report.multi_series? %>
+  <% if @custom_report.table? %>
+    <% @report_tables.each do |table| %>
+      <%= content_tag :div, '', class: 'custom-report-table', 'data-table_data' => table.to_json %>
+    <% end %>
+  <% elsif @custom_report.multi_series? %>
     <%= content_tag :div,
       class:            'custom-report-chart',
       style:            width_style_for_series(@custom_report),

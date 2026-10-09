@@ -7,11 +7,10 @@ ru:
   label_custom_report_edit: "Изменение отчета"
   label_series_filters: "Фильтры рядов данных"
 
-  label_chart_type_undev_pie: "Undev Кольцевая диаграмма"
   label_chart_type_pie: "Круговая диаграмма"
   label_chart_type_donut: "Кольцевая диаграмма"
   label_chart_type_bar: "Столбчатая диаграмма"
-  label_chart_type_horizontal_bar: "Гистограмма"
+  label_chart_type_horizontal_bar: "Горизонтальная столбчатая диаграмма"
   label_chart_type_stacked_bar: "Группированная столбчатая диаграмма"
 
   field_chart_type: "Тип диаграммы"
@@ -24,6 +23,29 @@ ru:
   message_cant_delete_last_series: "В отчете должен быть по крайней мере один ряд данных!"
   message_add_custom_report_series: "Добавить ряд"
   message_remove_custom_report_series: "Удалить ряд"
+
+  label_chart_type_table: "Сводная таблица"
+  label_chart_type_heatmap: "Тепловая карта (таблица)"
+  label_report_default_bar_mode: "Режим столбцов по умолчанию"
+  label_report_stacked: "С накоплением"
+  label_report_grouped: "Рядом"
+  label_report_inherit: "Использовать настройки плагина"
+  label_report_values: "Показывать количество"
+  label_report_total: "Сумма"
+  label_report_empty: "Нет данных"
+  label_report_rows: "Строки"
+  label_report_columns: "Столбцы"
+  label_report_swap: "Поменять оси местами"
+  label_report_table: "Все данные — таблица"
+  label_report_overlap: "Ряды могут пересекаться. Суммы учитывают вхождения, а не уникальные задачи."
+  label_report_series_columns: "Настроенные ряды данных"
+  label_report_axes_help: "Группировка задаёт строки, это поле — столбцы. Для каждого ряда строится своя матрица. Множественные дополнительные поля не поддерживаются как оси таблицы."
+
+  label_report_heatmap: "Тепловая окраска"
+  label_report_layout: "Расположение столбцов"
+  label_report_series: "Ряд данных"
+
+  label_report_too_large: "Таблица содержит больше 20 000 ячеек. Сузьте фильтры или выберите другие поля группировки. Данные не обрезались."
 
   activerecord:
     errors:

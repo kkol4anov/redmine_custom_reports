@@ -1,5 +1,18 @@
 jQuery(document).ready(function($) {
 
+  function presentationFields() {
+    var type = $('#custom_report_chart_type').val();
+    var table = type === 'table' || type === 'heatmap';
+    $('.report-table-setting').toggle(table);
+    $('#custom_report_group_by option').each(function() {
+      $(this).prop('disabled', table && $(this).attr('data-table-supported') === 'false');
+    });
+    $('.report-chart-setting').toggle(!table);
+    $('.report-bar-setting').toggle(type === 'stacked_bar' || type === 'horizontal_bar');
+  }
+  $('#custom_report_chart_type').on('change', presentationFields);
+  presentationFields();
+
   var nextSeriesId = Date.now();
 
   function findSeriesId(el){

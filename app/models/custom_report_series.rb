@@ -54,6 +54,6 @@ class CustomReportSeries < ActiveRecord::Base
   end
 
   def data_label_text(label)
-    (label.present? ? label : custom_report.null_text).to_s
+    (label.nil? || label == '' ? custom_report.null_text : label).to_s
   end
 end
