@@ -16,7 +16,17 @@ class CustomReportsController < ApplicationController
 
   def new
     @custom_report = @project.custom_reports.build
-    @custom_report.series.build
+    if params[:copy_from].present?
+      source = @project.custom_reports.visible.find(params[:copy_from])
+      @custom_report.assign_attributes(source.attributes.slice(
+        'name', 'description', 'chart_type', 'group_by', 'null_text'))
+      @custom_report.is_public = source.is_public? &&
+        User.current.allowed_to?(:manage_public_custom_reports, @project)
+      source.series.each do |series|
+        @custom_report.series.build(name: series.name, filters: series.filters.deep_dup)
+      end
+    end
+    @custom_report.series.build if @custom_report.series.empty?
   end
 
   def create

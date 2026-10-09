@@ -155,7 +155,8 @@ jQuery(document).ready(function($) {
   $('body').on('click', '.custom-report-toggle-multi', function(event) {
     event.preventDefault();
     var select = $(document.getElementById($(this).data('target')));
-    select.prop('multiple', !select.prop('multiple'));
+    // Use Redmine's native toggle: it sets both multiple="multiple" and size.
+    toggleMultiSelect(select);
   });
 
 });
